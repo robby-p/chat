@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <title>chat</title>
+  <head>
+    <style>
+      body {
+        background: #1d1e1a;
+      }
+      h1 {
+        color: #fff;
+      }
+      .textarea {
+        height: 300px;
+      }
+      input,
+      .textarea {
+        color: #fff;
+        background: #2f2f26;
+        width: 100%;
+      }
+      .page {
+        padding: 100px;
+      }
+    </style>
+  </head>
+  <script src="chat.js"></script>
+  <body>
+    <div class="page">
+      <h1>Chat</h1>
+      <div>
+        <div class="textarea"></div>
+      </div>
+      <div>
+        <input type="text" class="textinput" />
+      </div>
+    </div>
+    <script>
+      $doc = document;
+      $find = document.querySelector.bind(document);
+      $win = window;
+      const myname = prompt("Who are you?");
+
+      const input = $find(".textinput");
+      const chatroom = $find(".textarea");
+      let msgSync = 0;
+      printMsg({ name: "", msg: "Hello there " + myname });
+      input.focus();
+      setInterval(sync, 500);
+
+      $win.onload = function () {
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            sendMsg(this.value);
+            input.value = "";
+          }
+        });
+      };
+      async function sync() {
+        const msgs = await fetch(`/sync/${msgSync}`, {
+          method: "GET",
+        }).then((r) => r.json());
+        for (let { name, msg, id } of msgs) {
+          printMsg({ name, msg });
+          msgSync = id;
+        }
+      }
+      function printMsg({ msg, name }) {
+        let msgEl = document.createElement("div");
+        msgEl.innerHTML = `
+             ${name ? name + ":" : ""} ${msg}
+           `;
+        chatroom.appendChild(msgEl);
+      }
+      async function sendMsg(msg) {
+        const res = await fetch("/msg", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: myname,
+            msg,
+          }),
+        }).then((r) => r.json());
+        msgSync = res.id;
+        printMsg({ name: myname, msg });
+      }
+    </script>
+  </body>
+</html>
